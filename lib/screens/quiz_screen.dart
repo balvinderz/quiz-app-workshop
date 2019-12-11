@@ -1,13 +1,93 @@
 import 'package:flutter/material.dart';
+import 'package:quizapp/models/question.dart';
+import 'package:quizapp/network/quiz_api.dart';
+import 'package:quizapp/screens/question_card.dart';
+import 'package:quizapp/screens/score_screen.dart';
 
-class QuizScreen extends StatelessWidget {
+
+class QuizScreen extends StatefulWidget {
+  @override
+  _QuizScreenState createState() => _QuizScreenState();
+}
+
+class _QuizScreenState extends State<QuizScreen> {
+
+  PageController _pageController;
+  bool loadingQuestions = true;
+  QuizApi quizApi ;
+  List<String> selectedAnswers ;
+  List<Question> questions;
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    quizApi = QuizApi();
+      quizApi.getQuestions()..then((result) {
+        questions = result;
+        setState(() {
+          loadingQuestions = false;
+          selectedAnswers = List(questions.length);
+          for(var i =0;i<questions.length;i++)
+            selectedAnswers[i]="";
+        });
+      }
+            );
+
+
+  }
+  int getAttemptedQuestions()
+  {
+    int attemptedQuestions = 0;
+    for(String answer in selectedAnswers)
+      if(answer!="")
+        attemptedQuestions++;
+      return attemptedQuestions;
+  }
+
+  @override
+  void dispose()
+  {
+    super.dispose();
+    _pageController.dispose();
+  }
+  Future<void> submitQuiz() async
+  {
+    return showDialog(context: context,
+    builder: (context){
+      return AlertDialog(
+        title: Text("Do you want to submit the quiz"),
+
+        actions: <Widget>[
+          FlatButton(
+            child: Text("No"),
+            onPressed: (){
+              Navigator.pop(context);
+            },
+          ),
+          FlatButton(
+            child: Text("Yes"),
+            onPressed: ()async {
+              int correctAnswers = 0;
+              for(var i =0;i<questions.length;i++)
+                if(questions[i].answer == selectedAnswers[i])
+                  correctAnswers++;
+                print(correctAnswers);
+               await  Navigator.push(context, MaterialPageRoute(
+                  builder: (context)=> ScoreScreen(correctAnswers: correctAnswers,totalQuestions: questions.length,)
+                )
+                );
+                Navigator.pop(context);
+            },
+          )
+        ],
+      );
+    }
+    );
+  }
+  int attemptedQuestions =0;
   @override
   Widget build(BuildContext context) {
     // TODO: implement build
-    final width = MediaQuery
-        .of(context)
-        .size
-        .width;
 
     return Scaffold(
       appBar: AppBar(
@@ -15,105 +95,32 @@ class QuizScreen extends StatelessWidget {
         elevation: 0.0,
         title: Text("Quiz"),
         centerTitle: true,
-      ),
-      body: Container(
-        color: Colors.black87,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Container(
-            decoration: BoxDecoration(
+        actions: loadingQuestions ? null : <Widget>[
 
-              color: Color(0xFF8434DE),
-              borderRadius: BorderRadius.circular(15.0)
-            ),
-            child: Center(
-              child: Column(
-
-                children: <Widget>[
-                  SizedBox(
-                    height: 50.0,
-                  ),
-                  Text("Question 3/10", style: TextStyle(
-                      color: Color(0xFFFCFBFC),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15.0
-                  ),),
-                  SizedBox(
-                    height: 20.0,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Text("What was the first product launched by Apple?",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        textBaseline: TextBaseline.alphabetic,
-                        color: Color(0xFFFCFBFC),
-                        fontSize: 30.0,
-                        fontWeight: FontWeight.bold,
-                      ),),
-                  ),
-                  SizedBox(
-                    height: 50.0,
-                  ),
-                  AnswerCard(
-                    answer: "iPhone",
-                    isCorrect: false,
-                  ),
-                  AnswerCard(
-                    answer: "iPad",
-                    isCorrect: false,
-                  ),
-                  AnswerCard(
-                    answer: "iPod ",
-                    isCorrect: false,
-                  ),
-                  AnswerCard(
-                    answer: "Apple I",
-                    isCorrect: true,
-                  ),
-                ],
-              ),
-            ),
+          Center(child: Text("${getAttemptedQuestions()
+          }/${questions.length}")),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: IconButton(
+              icon: Icon(Icons.check),
+              onPressed: submitQuiz
+            )
           ),
-        ),
+        ],
+      ),
+      body: loadingQuestions ? Center(
+        child: CircularProgressIndicator(),
+      ) : PageView.builder(
+        physics: BouncingScrollPhysics(),
+        controller: _pageController,
+        itemCount: questions.length,
+        itemBuilder: (context, index) => QuestionCard(question : questions[index],totalQuestions: questions.length,index: index+1, function : (selected){
+          setState(() {
+            selectedAnswers[index] =selected;
+          });
+        } ),
       ),
     );
   }
 }
 
-class AnswerCard extends StatelessWidget {
-  String answer;
-  bool isCorrect;
-
-  AnswerCard({this.answer, this.isCorrect});
-
-  @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery
-        .of(context)
-        .size
-        .width;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-          onTap: (){
-            print("soja");
-          },
-          child: Container(
-            margin: EdgeInsets.symmetric(vertical: 8.0),
-            width: width - 0.2 * width,
-            height: 65,
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15.0), color: Color(0xFF3C0E70)),
-            child: Center(
-              child: Text(
-                answer,
-                style: TextStyle(color: Colors.white, fontSize: 25.0),
-              ),
-            ),
-          ),
-
-      ),
-    );
-  }
-}
