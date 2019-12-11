@@ -13,6 +13,8 @@ class ScoreScreen extends StatefulWidget {
 
 class _ScoreScreenState extends State<ScoreScreen> with TickerProviderStateMixin {
   Animation<double> animation;
+  Animation<double> rotationAnimation;
+  AnimationController rotationController;
   AnimationController controller;
   int offset = 0;
   @override
@@ -35,7 +37,11 @@ class _ScoreScreenState extends State<ScoreScreen> with TickerProviderStateMixin
                 textStyle: TextStyle(
                 fontSize: 50.0,
               ),),),
-              Image.asset("assets/baloon.png")
+              Expanded(
+                  flex  :1,
+                  child: Transform.rotate(
+                      angle : rotationController.value*6.3,
+                      child: Image.asset("assets/baloon.png",)))
             ],
           )
         ),
@@ -47,14 +53,19 @@ class _ScoreScreenState extends State<ScoreScreen> with TickerProviderStateMixin
   void initState() {
     super.initState();
     controller = AnimationController(
-      duration: Duration(milliseconds: 1000),
+      duration: Duration(milliseconds: 3000),
       vsync: this
     );
-    animation = Tween<double>(begin: 0.0,end: 20.0).animate(controller);
+    animation = Tween<double>(begin: 0.0,end: 10.0).animate(controller);
     controller.addListener((){
       setState(() {
       });
     });
+    rotationController = AnimationController(
+      duration: Duration(seconds: 7),
+      vsync: this
+    );
+    rotationController.repeat();
     controller.forward();
   }
 }
